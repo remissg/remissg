@@ -11,8 +11,7 @@
 ╚══════════════════════════════════════════════════════════════════════════╝
 ```
 
-<!-- Typing SVG -->
-[![Typing SVG](https://readme-typing-svg.demolab.com?font=Fira+Code&size=22&pause=1000&color=00FF41&center=true&vCenter=true&width=600&lines=Full-Stack+Developer+%F0%9F%9A%80;834+Contributions+%26+Still+Firing+%F0%9F%94%AB;Building+things+that+matter+%F0%9F%8C%8C;Code+%C2%B7+Deploy+%C2%B7+Repeat+%F0%9F%9B%B8)](https://git.io/typing-svg)
+[![Typing SVG](https://readme-typing-svg.demolab.com?font=Fira+Code&size=22&pause=1000&color=00FF41&center=true&vCenter=true&width=600&lines=Full-Stack+Developer+%F0%9F%9A%80;835+Contributions+%26+Still+Firing+%F0%9F%94%AB;Building+things+that+matter+%F0%9F%8C%8C;Code+%C2%B7+Deploy+%C2%B7+Repeat+%F0%9F%9B%B8)](https://git.io/typing-svg)
 
 </div>
 
@@ -28,25 +27,36 @@ status: currently_deploying: true
 coffee_dependency: critical
 ```
 
-I write code that actually ships — 834 contributions in the last year means I'm **always in the fight**. Whether it's building full-stack apps, tinkering with systems, or pushing pixels into place, I show up every day and pull the trigger.
+I write code that actually ships — 835 contributions in the last year means I'm **always in the fight**. Whether it's building full-stack apps, tinkering with systems, or pushing pixels into place, I show up every day and pull the trigger.
 
 ---
 
-## 🔫 CONTRIBUTION GRID: GUN FIGHT MODE
+## 🚀 CONTRIBUTION GRID: SPACE WAR MODE
 
-> *Every green square is a shot fired. The darker, the deadlier.*
-
-<!-- Snake animation eating contributions — add this workflow to your repo -->
-<!-- https://github.com/Platane/snk -->
-
-![github-contribution-grid-snake-dark](https://raw.githubusercontent.com/remissg/remissg/output/github-contribution-grid-snake-dark.svg#gh-dark-mode-only)
-![github-contribution-grid-snake](https://raw.githubusercontent.com/remissg/remissg/output/github-contribution-grid-snake.svg#gh-light-mode-only)
+> *Every commit is a laser blast. The darker the square, the bigger the explosion.*
 
 ```
-🌑 . . . ░ ░ ▒ ▒ ▓ ▓ █ 💥 ← Each commit = a bullet. Keep firing.
+🌑  ·  ·  ░  ░  ▒  ▒  ▓  ▓  █  💥  ←  Each commit = a laser shot. FIRE!
 ```
 
-> **834 rounds fired this year.** The grid is my battlefield. No day off = no empty chamber.
+<!-- Space War snake — orange laser snake eating blue/purple contribution dots -->
+<!-- Light mode: laser orange snake on space-dark background -->
+![space-war-snake](https://raw.githubusercontent.com/remissg/remissg/output/github-contribution-grid-snake.svg#gh-light-mode-only)
+<!-- Dark mode: same but dark palette -->
+![space-war-snake-dark](https://raw.githubusercontent.com/remissg/remissg/output/github-contribution-grid-snake-dark.svg#gh-dark-mode-only)
+
+> 🔥 **835 laser blasts fired.** The grid is the galaxy. Every empty square is a missed shot. Zero mercy.
+
+<div align="center">
+
+```
+▓▓▓ KILL FEED ▓▓▓
+🚀 remissg eliminated: 835 contributions  
+💀 Days without commits: minimal
+🏆 Current streak: ACTIVE
+```
+
+</div>
 
 ---
 
@@ -54,11 +64,17 @@ I write code that actually ships — 834 contributions in the last year means I'
 
 <div align="center">
 
-| ⚔️ Combat Stats | 🎯 Precision Metrics |
-|---|---|
-| ![GitHub Stats](https://github-readme-stats.vercel.app/api?username=remissg&show_icons=true&theme=chartreuse-dark&hide_border=true&bg_color=0D1117&title_color=00FF41&icon_color=00FF41&text_color=FFFFFF) | ![Top Languages](https://github-readme-stats.vercel.app/api/top-langs/?username=remissg&layout=compact&theme=chartreuse-dark&hide_border=true&bg_color=0D1117&title_color=00FF41&text_color=FFFFFF) |
-
 ![GitHub Streak](https://streak-stats.demolab.com/?user=remissg&theme=chartreuse-dark&hide_border=true&background=0D1117&ring=00FF41&fire=FF4500&currStreakLabel=00FF41)
+
+<br/>
+
+![stars](https://img.shields.io/github/stars/remissg?label=⭐%20Stars%20Earned&style=for-the-badge&color=FF4500&labelColor=0D1117&logo=github&logoColor=white)
+![repos](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fapi.github.com%2Fusers%2Fremissg&query=%24.public_repos&label=🚀%20Missions%20Launched&style=for-the-badge&color=00BFFF&labelColor=0D1117&logo=github&logoColor=white)
+![followers](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fapi.github.com%2Fusers%2Fremissg&query=%24.followers&label=👥%20Allies&style=for-the-badge&color=00FF41&labelColor=0D1117&logo=github&logoColor=white)
+
+<br/>
+
+[![Activity Graph](https://github-readme-activity-graph.vercel.app/graph?username=remissg&bg_color=0D1117&color=00FF41&line=00FF41&point=FF4500&area=true&hide_border=true&area_color=003300&custom_title=remissg%20%7C%20Combat%20Activity%20Log)](https://github.com/remissg)
 
 </div>
 
@@ -97,7 +113,7 @@ WEAPONS LOADOUT
 [ MAY ] ████████████ Still locked in 🔒
 [ NOW ] ▓▓▓▓▓▓▓▓▓▓▓▓ ACTIVE COMBAT ZONE
 
-834 total contributions | 0 days surrendered
+835 total contributions | 0 days surrendered
 ```
 
 ---
