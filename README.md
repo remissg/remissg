@@ -39,11 +39,7 @@ I write code that actually ships — 835 contributions in the last year means I'
 🌑  ·  ·  ░  ░  ▒  ▒  ▓  ▓  █  💥  ←  Each commit = a laser shot. FIRE!
 ```
 
-<!-- Space War snake — orange laser snake eating blue/purple contribution dots -->
-<!-- Light mode: laser orange snake on space-dark background -->
-![space-war-snake](https://raw.githubusercontent.com/remissg/remissg/output/github-contribution-grid-snake.svg#gh-light-mode-only)
-<!-- Dark mode: same but dark palette -->
-![space-war-snake-dark](https://raw.githubusercontent.com/remissg/remissg/output/github-contribution-grid-snake-dark.svg#gh-dark-mode-only)
+![space-war](https://raw.githubusercontent.com/remissg/remissg/output/space-war.svg)
 
 > 🔥 **835 laser blasts fired.** The grid is the galaxy. Every empty square is a missed shot. Zero mercy.
 
