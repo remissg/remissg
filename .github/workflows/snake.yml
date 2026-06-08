@@ -16,9 +16,6 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Install dependencies
-        run: npm install @octokit/rest
-
       - name: Generate Space War SVG
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
