@@ -1,6 +1,5 @@
-const { Octokit } = require("@octokit/rest");
+const https = require("https");
 const fs = require("fs");
-const path = require("path");
 
 const USERNAME = "remissg";
 const COLS = 53;
@@ -11,20 +10,43 @@ const STEP = CELL + GAP;
 const PAD_X = 20;
 const PAD_Y = 50;
 const WIDTH = PAD_X * 2 + COLS * STEP;
-const HEIGHT = PAD_Y + ROWS * STEP + 60;
+const HEIGHT = PAD_Y + ROWS * STEP + 40;
 
-// Fetch contributions via GitHub GraphQL
+function graphqlRequest(token, query, variables) {
+  return new Promise((resolve, reject) => {
+    const body = JSON.stringify({ query, variables });
+    const options = {
+      hostname: "api.github.com",
+      path: "/graphql",
+      method: "POST",
+      headers: {
+        "Authorization": `bearer ${token}`,
+        "Content-Type": "application/json",
+        "User-Agent": "space-war-generator"
+      }
+    };
+    const req = https.request(options, (res) => {
+      let data = "";
+      res.on("data", chunk => data += chunk);
+      res.on("end", () => resolve(JSON.parse(data)));
+    });
+    req.on("error", reject);
+    req.write(body);
+    req.end();
+  });
+}
+
 async function getContributions() {
-  const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+  const token = process.env.GITHUB_TOKEN;
   const query = `
     query($login: String!) {
       user(login: $login) {
         contributionsCollection {
           contributionCalendar {
+            totalContributions
             weeks {
               contributionDays {
                 contributionCount
-                date
               }
             }
           }
@@ -32,17 +54,10 @@ async function getContributions() {
       }
     }
   `;
-  const result = await octokit.graphql(query, { login: USERNAME });
-  const weeks = result.user.contributionsCollection.contributionCalendar.weeks;
-  const grid = [];
-  for (const week of weeks) {
-    const col = [];
-    for (const day of week.contributionDays) {
-      col.push(day.contributionCount);
-    }
-    grid.push(col);
-  }
-  return grid;
+  const result = await graphqlRequest(token, query, { login: USERNAME });
+  const cal = result.data.user.contributionsCollection.contributionCalendar;
+  const grid = cal.weeks.map(w => w.contributionDays.map(d => d.contributionCount));
+  return { grid, total: cal.totalContributions };
 }
 
 function levelColor(count) {
@@ -53,166 +68,113 @@ function levelColor(count) {
   return "#e94560";
 }
 
-function buildSVG(grid) {
-  // Flatten to get max for ship path
-  const allCounts = grid.flat();
-  const maxCount = Math.max(...allCounts);
+function rand(seed, max) {
+  return Math.floor(((seed * 1664525 + 1013904223) & 0x7fffffff) % max);
+}
 
-  // Build cells
-  let cells = "";
-  let lasers = "";
-  let shipFrames = "";
-  let explosions = "";
-
+function buildSVG(grid, total) {
   const totalCols = grid.length;
+  const animDur = totalCols * 0.15;
 
-  // For each column find the highest contribution row — ship fires there
-  const fireTargets = grid.map((col, ci) => {
-    let maxVal = 0, maxRow = 0;
-    col.forEach((v, ri) => { if (v > maxVal) { maxVal = v; maxRow = ri; } });
-    return { col: ci, row: maxRow, count: maxVal };
-  });
+  // Stars
+  let stars = "";
+  for (let i = 0; i < 80; i++) {
+    const sx = rand(i * 7 + 1, WIDTH);
+    const sy = rand(i * 13 + 3, HEIGHT);
+    const sr = i % 4 === 0 ? 1.2 : 0.5;
+    const op = 0.3 + (i % 5) * 0.1;
+    stars += `<circle cx="${sx}" cy="${sy}" r="${sr}" fill="white" opacity="${op}"/>`;
+  }
 
-  // Cells
+  // Grid cells
+  let cells = "";
   for (let ci = 0; ci < grid.length; ci++) {
     const col = grid[ci];
     for (let ri = 0; ri < col.length; ri++) {
       const x = PAD_X + ci * STEP;
       const y = PAD_Y + ri * STEP;
       const color = levelColor(col[ri]);
-      const glowId = col[ri] > 5 ? ` filter="url(#glow)"` : "";
-      cells += `<rect x="${x}" y="${y}" width="${CELL}" height="${CELL}" rx="2" fill="${color}"${glowId}/>`;
+      const glow = col[ri] > 5 ? ` filter="url(#glow)"` : "";
+      cells += `<rect x="${x}" y="${y}" width="${CELL}" height="${CELL}" rx="2" fill="${color}"${glow}/>`;
     }
   }
 
-  // Ship animation — flies across the top, fires laser at each hot column
-  const shipY = PAD_Y - 28;
-  const animDur = totalCols * 0.18; // seconds total
-  
-  // keyTimes and keySplines for ship x position
-  const keyTimes = grid.map((_, i) => (i / (totalCols - 1)).toFixed(3)).join(";");
-  const xValues = grid.map((_, i) => PAD_X + i * STEP + CELL / 2).join(";");
-
-  shipFrames = `
-  <g id="ship">
-    <!-- spaceship body -->
-    <polygon points="0,-10 6,6 0,2 -6,6" fill="#FF6600" stroke="#FFB347" stroke-width="1"/>
-    <!-- cockpit -->
-    <ellipse cx="0" cy="-4" rx="2.5" ry="3" fill="#00FFFF" opacity="0.9"/>
-    <!-- left wing -->
-    <polygon points="-6,6 -12,10 -8,2" fill="#cc4400"/>
-    <!-- right wing -->
-    <polygon points="6,6 12,10 8,2" fill="#cc4400"/>
-    <!-- engine glow -->
-    <ellipse cx="0" cy="7" rx="3" ry="2" fill="#FF4500" opacity="0.8">
-      <animate attributeName="ry" values="2;4;2" dur="0.3s" repeatCount="indefinite"/>
-      <animate attributeName="opacity" values="0.8;1;0.8" dur="0.3s" repeatCount="indefinite"/>
-    </ellipse>
-    <animateMotion dur="${animDur}s" repeatCount="indefinite" calcMode="linear">
-      <mpath href="#shipPath"/>
-    </animateMotion>
-  </g>`;
-
-  // Ship path — straight line across top
-  const pathD = `M ${PAD_X + CELL/2} ${shipY} L ${PAD_X + (totalCols-1)*STEP + CELL/2} ${shipY}`;
-
-  // Laser beams — one per "hot" column (count > 3)
-  let laserIndex = 0;
+  // Lasers + explosions
+  let lasers = "";
+  let explosions = "";
   for (let ci = 0; ci < grid.length; ci++) {
     const col = grid[ci];
     const maxVal = Math.max(...col);
     if (maxVal < 3) continue;
-
     const targetRow = col.indexOf(maxVal);
     const lx = PAD_X + ci * STEP + CELL / 2;
-    const ly1 = shipY + 10;
+    const ly1 = PAD_Y - 18;
     const ly2 = PAD_Y + targetRow * STEP;
-
-    // When does ship reach this column?
-    const delay = (ci / (totalCols - 1)) * animDur;
-    const laserDur = 0.25;
+    const delay = ((ci / (totalCols - 1)) * animDur).toFixed(2);
+    const dur = 0.22;
 
     lasers += `
-    <line x1="${lx}" y1="${ly1}" x2="${lx}" y2="${ly2}" 
-      stroke="#FF0055" stroke-width="2" opacity="0" stroke-linecap="round">
-      <animate attributeName="opacity" values="0;1;1;0" 
-        dur="${laserDur}s" begin="${delay.toFixed(2)}s" 
-        repeatCount="indefinite" keyTimes="0;0.1;0.7;1"/>
+    <line x1="${lx}" y1="${ly1}" x2="${lx}" y2="${ly2}" stroke="#FF0055" stroke-width="2.5" opacity="0" stroke-linecap="round">
+      <animate attributeName="opacity" values="0;1;1;0" dur="${dur}s" begin="${delay}s" repeatCount="indefinite" keyTimes="0;0.05;0.7;1"/>
     </line>
-    <line x1="${lx}" y1="${ly1}" x2="${lx}" y2="${ly2}" 
-      stroke="#FF88AA" stroke-width="1" opacity="0">
-      <animate attributeName="opacity" values="0;0.6;0.6;0" 
-        dur="${laserDur}s" begin="${delay.toFixed(2)}s" 
-        repeatCount="indefinite" keyTimes="0;0.1;0.7;1"/>
+    <line x1="${lx}" y1="${ly1}" x2="${lx}" y2="${ly2}" stroke="#FF88AA" stroke-width="1" opacity="0">
+      <animate attributeName="opacity" values="0;0.7;0.7;0" dur="${dur}s" begin="${delay}s" repeatCount="indefinite" keyTimes="0;0.05;0.7;1"/>
     </line>`;
 
-    // Explosion at target
     if (maxVal > 5) {
       explosions += `
-      <g transform="translate(${lx}, ${PAD_Y + targetRow * STEP + CELL/2})" opacity="0">
-        <circle r="0" fill="#FF4500" opacity="0.9">
-          <animate attributeName="r" values="0;8;0" dur="${laserDur}s" begin="${delay.toFixed(2)}s" repeatCount="indefinite"/>
-        </circle>
-        <circle r="0" fill="#FFD700" opacity="0.7">
-          <animate attributeName="r" values="0;5;0" dur="${laserDur}s" begin="${(delay+0.03).toFixed(2)}s" repeatCount="indefinite"/>
-        </circle>
-        <animate attributeName="opacity" values="0;1;1;0" dur="${laserDur}s" begin="${delay.toFixed(2)}s" repeatCount="indefinite" keyTimes="0;0.1;0.7;1"/>
+      <g transform="translate(${lx},${PAD_Y + targetRow * STEP + CELL / 2})" opacity="0">
+        <circle r="0" fill="#FF4500"><animate attributeName="r" values="0;9;0" dur="${dur}s" begin="${delay}s" repeatCount="indefinite"/></circle>
+        <circle r="0" fill="#FFD700" opacity="0.8"><animate attributeName="r" values="0;5;0" dur="${dur}s" begin="${(parseFloat(delay)+0.03).toFixed(2)}s" repeatCount="indefinite"/></circle>
+        <animate attributeName="opacity" values="0;1;1;0" dur="${dur}s" begin="${delay}s" repeatCount="indefinite" keyTimes="0;0.05;0.7;1"/>
       </g>`;
     }
   }
 
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}">
+  // Ship path straight across top
+  const shipY = PAD_Y - 22;
+  const x0 = PAD_X + CELL / 2;
+  const x1 = PAD_X + (totalCols - 1) * STEP + CELL / 2;
+
+  const ship = `
+  <g>
+    <polygon points="0,-11 7,7 0,3 -7,7" fill="#FF6600" stroke="#FFB347" stroke-width="1"/>
+    <ellipse cx="0" cy="-5" rx="2.5" ry="3" fill="#00FFFF" opacity="0.9"/>
+    <polygon points="-7,7 -13,11 -9,2" fill="#cc4400"/>
+    <polygon points="7,7 13,11 9,2" fill="#cc4400"/>
+    <ellipse cx="0" cy="8" rx="3" ry="2" fill="#FF4500" opacity="0.85">
+      <animate attributeName="ry" values="2;5;2" dur="0.25s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.85;1;0.85" dur="0.25s" repeatCount="indefinite"/>
+    </ellipse>
+    <animateMotion dur="${animDur}s" repeatCount="indefinite" calcMode="linear"
+      path="M ${x0} ${shipY} L ${x1} ${shipY}"/>
+  </g>`;
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}">
   <defs>
-    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="2" result="blur"/>
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
       <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
-    <path id="shipPath" d="${pathD}"/>
   </defs>
-
-  <!-- Space background -->
-  <rect width="${WIDTH}" height="${HEIGHT}" fill="#0d1117" rx="8"/>
-
-  <!-- Stars -->
-  ${Array.from({length: 80}, (_, i) => {
-    const sx = Math.floor((i * 137.5) % WIDTH);
-    const sy = Math.floor((i * 97.3) % HEIGHT);
-    const sr = i % 3 === 0 ? 1.2 : 0.6;
-    return `<circle cx="${sx}" cy="${sy}" r="${sr}" fill="white" opacity="${0.3 + (i%5)*0.1}"/>`;
-  }).join("")}
-
-  <!-- Contribution grid cells -->
+  <rect width="${WIDTH}" height="${HEIGHT}" fill="#0d1117" rx="10"/>
+  ${stars}
   ${cells}
-
-  <!-- Laser beams -->
   ${lasers}
-
-  <!-- Explosions -->
   ${explosions}
-
-  <!-- Spaceship -->
-  ${shipFrames}
-
-  <!-- Label -->
-  <text x="${WIDTH/2}" y="${HEIGHT - 12}" text-anchor="middle" 
-    font-family="monospace" font-size="11" fill="#FF6600" opacity="0.8">
-    remissg · space war mode · ${allCounts.reduce((a,b)=>a+b,0)} commits fired
-  </text>
+  ${ship}
+  <text x="${WIDTH/2}" y="${HEIGHT - 8}" text-anchor="middle" font-family="monospace" font-size="10" fill="#FF6600" opacity="0.75">remissg · space war mode · ${total} commits fired 🚀</text>
 </svg>`;
-
-  return svg;
 }
 
 async function main() {
-  console.log("Fetching contributions...");
-  const grid = await getContributions();
-  console.log(`Got ${grid.length} weeks of data`);
-  
-  const svg = buildSVG(grid);
-  
+  console.log("Fetching contributions for", USERNAME);
+  const { grid, total } = await getContributions();
+  console.log("Weeks:", grid.length, "| Total commits:", total);
+  const svg = buildSVG(grid, total);
   fs.mkdirSync("dist", { recursive: true });
   fs.writeFileSync("dist/space-war.svg", svg);
-  console.log("Generated dist/space-war.svg");
+  console.log("✅ Generated dist/space-war.svg");
 }
 
-main().catch(console.error);
+main().catch(err => { console.error(err); process.exit(1); });
