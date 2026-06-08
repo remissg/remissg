@@ -1,22 +1,31 @@
-name: 🚀 Space War Snake
+name: 🚀 Space War Contribution Grid
 
 on:
   schedule:
-    - cron: "0 */12 * * *"   # runs every 12 hours
-  workflow_dispatch:           # lets you trigger manually
+    - cron: "0 */12 * * *"
+  workflow_dispatch:
 
 jobs:
   generate:
     runs-on: ubuntu-latest
     steps:
-      - uses: Platane/snk@v3
-        with:
-          github_user_name: remissg
-          outputs: |
-            dist/github-contribution-grid-snake.svg?color_snake=FF6600&color_dots=#0d1117,#1a1f6e,#2d3aab,#4a56e2,#7b88ff
-            dist/github-contribution-grid-snake-dark.svg?palette=github-dark&color_snake=FF6600&color_dots=#0d1117,#1a1f6e,#2d3aab,#4a56e2,#7b88ff
+      - uses: actions/checkout@v3
 
-      - uses: crazy-max/ghaction-github-pages@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install @octokit/rest
+
+      - name: Generate Space War SVG
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node generate-space-war.js
+
+      - name: Deploy to output branch
+        uses: crazy-max/ghaction-github-pages@v3
         with:
           target_branch: output
           build_dir: dist
