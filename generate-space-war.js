@@ -102,17 +102,51 @@ function buildSVG(grid, total) {
     }
   }
 
-  // Lasers + explosions — laser goes from SHIP_NOSE_Y upward to target cell
-  let lasers = "", explosions = "";
+  // Explosions stay fixed at their grid positions
+  let explosions = "";
+  for (let ci = 0; ci < grid.length; ci++) {
+    const col = grid[ci];
+    const maxVal = Math.max(...col);
+    if (maxVal <= 5) continue;
+    const targetRow = col.indexOf(maxVal);
+    const lx = PAD_X + ci * STEP + CELL / 2;
+    const ey = PAD_Y + targetRow * STEP + CELL / 2;
+    const arriveTime = (ci / (totalCols - 1)) * LOOP;
+    const t = [
+      "0",
+      (arriveTime / LOOP).toFixed(4),
+      Math.min(1,(arriveTime + LASER_VISIBLE*0.1)/LOOP).toFixed(4),
+      Math.min(1,(arriveTime + LASER_VISIBLE*0.85)/LOOP).toFixed(4),
+      Math.min(1,(arriveTime + LASER_VISIBLE)/LOOP).toFixed(4),
+      "1"
+    ].join(";");
+    explosions += `
+    <g transform="translate(${lx},${ey})" opacity="0">
+      <circle r="0" fill="#f72585"><animate attributeName="r" dur="${LOOP}s" values="0;0;11;0;0;0" keyTimes="${t}" repeatCount="indefinite"/></circle>
+      <circle r="0" fill="#fffb00" opacity="0.9"><animate attributeName="r" dur="${LOOP}s" values="0;0;6;0;0;0" keyTimes="${t}" repeatCount="indefinite"/></circle>
+      <animate attributeName="opacity" dur="${LOOP}s" values="0;0;1;1;0;0" keyTimes="${t}" repeatCount="indefinite"/>
+    </g>`;
+  }
+
+  // Ship with laser INSIDE the group — laser moves with ship, always connected to nose
+  // Ship coordinate system: nose tip at (0,-13), exhaust at (0,+11)
+  // Laser goes from nose tip (0,-13) straight up to target height relative to ship
+  const x0 = PAD_X + CELL / 2;
+  const x1 = PAD_X + (totalCols - 1) * STEP + CELL / 2;
+
+  // Build per-column laser segments inside the ship group
+  // At each column ci, ship center is at absolute y=SHIP_CENTER_Y
+  // Target cell is at absolute y = PAD_Y + targetRow*STEP + CELL/2
+  // In ship-local coords: laserEndY = targetAbsY - SHIP_CENTER_Y (negative = upward)
+  let shipLasers = "";
   for (let ci = 0; ci < grid.length; ci++) {
     const col = grid[ci];
     const maxVal = Math.max(...col);
     if (maxVal < 2) continue;
-
     const targetRow = col.indexOf(maxVal);
-    const lx = PAD_X + ci * STEP + CELL / 2;
-    const laserStart = SHIP_NOSE_Y;              // bottom of laser = nose tip
-    const laserEnd   = PAD_Y + targetRow * STEP + CELL / 2; // top = target cell
+    const targetAbsY = PAD_Y + targetRow * STEP + CELL / 2;
+    const laserLocalEnd = targetAbsY - SHIP_CENTER_Y; // negative number (upward)
+    const laserLocalStart = -13; // nose tip in ship-local coords
 
     const arriveTime = (ci / (totalCols - 1)) * LOOP;
     const t = [
@@ -124,42 +158,28 @@ function buildSVG(grid, total) {
       "1"
     ].join(";");
 
-    lasers += `
-    <line x1="${lx}" y1="${laserStart}" x2="${lx}" y2="${laserEnd}"
+    shipLasers += `
+    <line x1="0" y1="${laserLocalStart}" x2="0" y2="${laserLocalEnd}"
       stroke="#00ffff" stroke-width="2.5" stroke-linecap="round" opacity="0">
       <animate attributeName="opacity" dur="${LOOP}s" values="0;0;1;1;0;0" keyTimes="${t}" repeatCount="indefinite"/>
     </line>
-    <line x1="${lx}" y1="${laserStart}" x2="${lx}" y2="${laserEnd}"
-      stroke="#ffffff" stroke-width="0.8" stroke-linecap="round" opacity="0">
+    <line x1="0" y1="${laserLocalStart}" x2="0" y2="${laserLocalEnd}"
+      stroke="#ffffff" stroke-width="0.8" opacity="0">
       <animate attributeName="opacity" dur="${LOOP}s" values="0;0;0.9;0.9;0;0" keyTimes="${t}" repeatCount="indefinite"/>
     </line>`;
-
-    if (maxVal > 5) {
-      explosions += `
-      <g transform="translate(${lx},${laserEnd})" opacity="0">
-        <circle r="0" fill="#f72585"><animate attributeName="r" dur="${LOOP}s" values="0;0;11;0;0;0" keyTimes="${t}" repeatCount="indefinite"/></circle>
-        <circle r="0" fill="#fffb00" opacity="0.9"><animate attributeName="r" dur="${LOOP}s" values="0;0;6;0;0;0" keyTimes="${t}" repeatCount="indefinite"/></circle>
-        <animate attributeName="opacity" dur="${LOOP}s" values="0;0;1;1;0;0" keyTimes="${t}" repeatCount="indefinite"/>
-      </g>`;
-    }
   }
-
-  // Ship — center at (0,0) for animateMotion, nose at (0,-13) pointing UP
-  // Wings spread at y=+8, exhaust flame at y=+9 pointing DOWN
-  const x0 = PAD_X + CELL / 2;
-  const x1 = PAD_X + (totalCols - 1) * STEP + CELL / 2;
 
   const ship = `
   <g>
-    <!-- body: nose UP at (0,-13), base at y=+9 -->
+    ${shipLasers}
+    <!-- body: nose UP at (0,-13) -->
     <polygon points="0,-13 9,9 0,5 -9,9" fill="#00ffff" stroke="#ffffff" stroke-width="0.8"/>
-    <!-- cockpit window -->
+    <!-- cockpit -->
     <ellipse cx="0" cy="-3" rx="2.5" ry="4" fill="#f72585" opacity="0.95"/>
-    <!-- left wing -->
+    <!-- wings -->
     <polygon points="-9,9 -18,15 -11,3" fill="#7209b7"/>
-    <!-- right wing -->
     <polygon points="9,9 18,15 11,3" fill="#7209b7"/>
-    <!-- exhaust flame at BOTTOM (y positive = downward) -->
+    <!-- exhaust DOWN -->
     <ellipse cx="0" cy="11" rx="3.5" ry="2.5" fill="#f72585" opacity="0.9">
       <animate attributeName="ry" values="2.5;6;2.5" dur="0.2s" repeatCount="indefinite"/>
       <animate attributeName="opacity" values="0.9;1;0.9" dur="0.2s" repeatCount="indefinite"/>
@@ -180,7 +200,6 @@ function buildSVG(grid, total) {
   <ellipse cx="${WIDTH*0.2}" cy="${HEIGHT*0.6}" rx="100" ry="50" fill="#00b4d8" opacity="0.06"/>
   ${stars}
   ${cells}
-  ${lasers}
   ${explosions}
   ${ship}
   <text x="${WIDTH/2}" y="${HEIGHT-6}" text-anchor="middle" font-family="monospace" font-size="10" fill="#00ffff" opacity="0.7">remissg · space war mode · ${total} commits fired 🚀</text>
